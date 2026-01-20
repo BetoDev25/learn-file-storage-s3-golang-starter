@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
@@ -114,6 +115,15 @@ func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve videos", err)
 		return
+	}
+
+	//debugging
+	for i, video := range videos {
+		if video.VideoURL != nil {
+			fmt.Printf("Video %d URL from DB: %s\n", i, *video.VideoURL)
+		} else {
+			fmt.Printf("Video %d URL from DB: (nil)\n", i)
+		}
 	}
 
 	respondWithJSON(w, http.StatusOK, videos)

@@ -2,8 +2,10 @@ package main
 
 import (
 	"net/http"
+	"fmt"
 	"database/sql"
 	"errors"
+	"path"
 	"mime"
 	"os"
 	"io"
@@ -97,6 +99,21 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	ratio, err := getVideoAspectRatio(temp.Name())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Couldn't get aspect ratio", err)
+		return
+	}
+	//aspect ratio
+	aspect := ""
+	if ratio == "16:9" {
+		aspect = "landscape"
+	} else if ratio == "9:16" {
+		aspect = "portrait"
+	} else {
+		aspect = "other"
+	}
+
 	//putting the object
 	raw := make([]byte, 32)
 	_, err = rand.Read(raw)
@@ -105,7 +122,8 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	key := hex.EncodeToString(raw) + ".mp4"
+	key0 := hex.EncodeToString(raw) + ".mp4"
+	key := path.Join(aspect, key0)
 
 	input := &s3.PutObjectInput{
 		Bucket:      aws.String(cfg.s3Bucket),
@@ -121,6 +139,7 @@ func (cfg *apiConfig) handlerUploadVideo(w http.ResponseWriter, r *http.Request)
 	}
 
 	url := "https://" +  cfg.s3Bucket + ".s3." + cfg.s3Region + ".amazonaws.com/" + key
+	fmt.Println("Generated URL:", url)
 	metadata.VideoURL = &url
 	err = cfg.db.UpdateVideo(metadata)
 	if err != nil {
